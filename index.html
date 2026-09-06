@@ -1,0 +1,428 @@
+<title>Global GDP Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --paper:#F7F4EC;
+    --surface:#FFFFFF;
+    --ink:#161C1B;
+    --muted:#6B6558;
+    --faint:#96907F;
+    --line:#DED7C6;
+    --signal:#D95D2B;
+    --teal:#1C5F5A;
+    --teal-tint:#E4EEEC;
+    --blue:#2a5d9e;
+    --blue-tint:#E5ECF5;
+    --neg:#C1402E;
+    --shadow: 0 1px 2px rgba(22,28,27,0.05), 0 8px 22px rgba(22,28,27,0.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#121612;
+      --surface:#181E1B;
+      --ink:#EFEAE0;
+      --muted:#A29C8C;
+      --faint:#726C5E;
+      --line:#2B322D;
+      --signal:#F0784A;
+      --teal:#5FB5AC;
+      --teal-tint:#1B2A27;
+      --blue:#6C9FDB;
+      --blue-tint:#1A2432;
+      --neg:#E67A6B;
+      --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 8px 28px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#121612; --surface:#181E1B; --ink:#EFEAE0; --muted:#A29C8C; --faint:#726C5E; --line:#2B322D;
+    --signal:#F0784A; --teal:#5FB5AC; --teal-tint:#1B2A27; --blue:#6C9FDB; --blue-tint:#1A2432; --neg:#E67A6B;
+    --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 8px 28px rgba(0,0,0,0.4);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
+
+  .wrap{max-width:1080px; margin:0 auto; padding:0 26px;}
+  h1,h2{font-family:'Fraunces',Georgia,serif; letter-spacing:-0.01em; text-wrap:balance; margin:0;}
+  a{color:inherit;}
+  .tabular{font-variant-numeric:tabular-nums;}
+
+  header{padding:36px 0 26px; border-bottom:1px solid var(--line);}
+  .crumb{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); margin-bottom:18px;}
+  .crumb a{text-decoration:none; color:var(--teal); font-weight:600;}
+  .crumb a:hover{text-decoration:underline;}
+  .head-row{display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap;}
+  h1{font-size:clamp(28px,4vw,38px); font-weight:600;}
+  .head-sub{color:var(--muted); font-size:14px; margin-top:8px; max-width:58ch; line-height:1.55;}
+  .head-meta{display:flex; gap:16px; flex-wrap:wrap;}
+  .meta-pill{
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--muted);
+    border:1px solid var(--line); border-radius:100px; padding:6px 13px; white-space:nowrap;
+  }
+  .theme-btn{
+    border:1px solid var(--line); background:var(--surface); color:var(--muted);
+    width:32px;height:32px;border-radius:8px; font-size:14px; cursor:pointer;
+  }
+
+  .tiles{display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:14px; overflow:hidden; margin:26px 0 0;}
+  @media (max-width:860px){ .tiles{grid-template-columns:repeat(2,1fr);} }
+  .tile{background:var(--surface); padding:18px 16px;}
+  .tile .num{font-family:'Fraunces',serif; font-weight:600; font-size:25px; color:var(--blue);}
+  .tile .label{font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.4;}
+
+  section{padding:44px 0;}
+  section + section{border-top:1px solid var(--line);}
+  .section-head{display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap; margin-bottom:6px;}
+  .section-head h2{font-size:21px; font-weight:600;}
+  .section-note{font-size:13px; color:var(--muted); max-width:62ch; line-height:1.6; margin:6px 0 22px;}
+
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:24px; box-shadow:var(--shadow);}
+
+  /* ranked bar rows (economies) */
+  .rank-row{display:grid; grid-template-columns:22px 120px 1fr 74px; align-items:center; gap:10px; margin-bottom:10px; font-size:13px;}
+  .rank-row:last-child{margin-bottom:0;}
+  .rank-num{font-family:'IBM Plex Mono',monospace; color:var(--faint); font-size:11.5px;}
+  .rank-name{font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .rank-track{position:relative; height:16px; background:var(--blue-tint); border-radius:5px; overflow:hidden; cursor:default;}
+  .rank-fill{position:absolute; top:0; bottom:0; left:0; border-radius:5px; background:var(--blue);}
+  .rank-val{font-family:'IBM Plex Mono',monospace; text-align:right; color:var(--muted);}
+
+  .rank-tooltip{
+    position:fixed; pointer-events:none; background:var(--ink); color:var(--paper);
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; padding:7px 10px; border-radius:7px;
+    white-space:nowrap; opacity:0; transition:opacity .1s; z-index:20;
+    box-shadow:0 6px 18px rgba(0,0,0,.25);
+  }
+  .rank-tooltip b{color:var(--signal);}
+
+  /* two-col layout */
+  .cols2{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  @media (max-width:820px){ .cols2{grid-template-columns:1fr;} }
+
+  /* growth diverge rows */
+  .gr-row{display:grid; grid-template-columns:110px 1fr 52px; align-items:center; gap:8px; margin-bottom:9px; font-size:12.5px;}
+  .gr-row:last-child{margin-bottom:0;}
+  .gr-name{font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .gr-track{position:relative; height:14px;}
+  .gr-fill{position:absolute; top:1px; bottom:1px; border-radius:4px;}
+  .gr-val{font-family:'IBM Plex Mono',monospace; text-align:right; color:var(--muted);}
+  .gr-panel-title{font-size:12px; font-family:'IBM Plex Mono',monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin-bottom:14px;}
+
+  /* bucket bars */
+  .bucket-row{display:grid; grid-template-columns:150px 1fr 40px; align-items:center; gap:12px; margin-bottom:14px;}
+  .bucket-row:last-child{margin-bottom:0;}
+  .bucket-label{font-size:13px; font-weight:600;}
+  .bucket-track{position:relative; height:20px; background:var(--teal-tint); border-radius:6px; overflow:hidden;}
+  .bucket-fill{position:absolute; top:0; bottom:0; left:0; border-radius:6px; background:var(--teal);}
+  .bucket-val{font-family:'IBM Plex Mono',monospace; text-align:right; font-size:13px; color:var(--ink);}
+
+  /* scatter */
+  .chart-shell{position:relative; width:100%;}
+  svg{display:block; width:100%; height:auto; overflow:visible;}
+  .gridline{stroke:var(--line); stroke-width:1;}
+  .axislabel{fill:var(--faint); font-family:'IBM Plex Mono',monospace; font-size:10px;}
+  .axistitle{fill:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.04em;}
+  .dot-pos{fill:var(--teal); fill-opacity:.78; stroke:var(--surface); stroke-width:1;}
+  .dot-neg{fill:var(--neg); fill-opacity:.78; stroke:var(--surface); stroke-width:1;}
+  .dot-hi{stroke:var(--ink); stroke-width:1.5;}
+  .scatter-tooltip{
+    position:absolute; pointer-events:none; background:var(--ink); color:var(--paper);
+    font-family:'IBM Plex Mono',monospace; font-size:12px; padding:8px 11px; border-radius:8px;
+    transform:translate(-50%,-115%); white-space:nowrap; opacity:0; transition:opacity .1s; z-index:5;
+    box-shadow:0 6px 18px rgba(0,0,0,.25);
+  }
+  .scatter-tooltip b{color:var(--signal);}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:14px; font-size:12px; color:var(--muted);}
+  .legend-item{display:flex; align-items:center; gap:6px;}
+  .swatch{width:11px; height:11px; border-radius:50%; display:inline-block;}
+
+  .callouts{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px;}
+  @media (max-width:600px){ .callouts{grid-template-columns:1fr;} }
+  .callout{background:var(--blue-tint); border-radius:10px; padding:14px 16px; font-size:13px; line-height:1.55; color:var(--ink);}
+  .callout b{color:var(--blue);}
+
+  footer{padding:40px 0 60px;}
+  .fine-print{text-align:center; font-size:12px; color:var(--muted); font-family:'IBM Plex Mono',monospace;}
+  .fine-print a{color:var(--teal); text-decoration:none; font-weight:600;}
+</style>
+
+<header>
+  <div class="wrap">
+    <div class="crumb">
+      <a href="https://priyanshi-portfolio-mauve-theta.vercel.app/" id="backLink">← Priyanshi Bhatt</a><span>/</span><span>Projects</span><span>/</span><span>Global GDP Dashboard</span>
+    </div>
+    <div class="head-row">
+      <div>
+        <h1>Global GDP Explorer, 2023</h1>
+        <p class="head-sub">181 national economies from World Bank &amp; UN data — nominal GDP, growth, population, and per-capita income, compared side by side.</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="head-meta">
+          <span class="meta-pill">181 economies</span>
+          <span class="meta-pill">2023 snapshot</span>
+        </div>
+        <button class="theme-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle color theme">◐</button>
+      </div>
+    </div>
+
+    <div class="tiles">
+      <div class="tile"><div class="num tabular">$104.6T</div><div class="label">combined GDP across 181 economies</div></div>
+      <div class="tile"><div class="num tabular">54.5%</div><div class="label">of world GDP held by the top 5 economies</div></div>
+      <div class="tile"><div class="num tabular">3.28%</div><div class="label">average GDP growth rate</div></div>
+      <div class="tile"><div class="num tabular">22</div><div class="label">economies in contraction (negative growth)</div></div>
+      <div class="tile"><div class="num tabular">7.9B</div><div class="label">combined population covered</div></div>
+    </div>
+  </div>
+</header>
+
+<section id="top-economies">
+  <div class="wrap">
+    <div class="section-head"><h2>The 15 largest economies</h2></div>
+    <p class="section-note">Ranked by 2023 nominal GDP. The US and China alone account for 42.9% of world output. Hover a bar for growth rate and per-capita income.</p>
+    <div class="panel" id="topEconomies"></div>
+  </div>
+</section>
+
+<section id="growth-extremes">
+  <div class="wrap">
+    <div class="section-head"><h2>Fastest and slowest growing economies</h2></div>
+    <p class="section-note">Macao's 75% rebound (post-reopening casino revenue) and Guyana's oil-driven 34% growth lead the field; Sudan and Timor-Leste show the sharpest contractions.</p>
+    <div class="cols2">
+      <div class="panel">
+        <div class="gr-panel-title">Fastest growing</div>
+        <div id="growthTop"></div>
+      </div>
+      <div class="panel">
+        <div class="gr-panel-title">Slowest / contracting</div>
+        <div id="growthBottom"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="growth-dist">
+  <div class="wrap">
+    <div class="section-head"><h2>How growth is distributed</h2></div>
+    <p class="section-note">Of 181 tracked economies, most cluster in moderate 2–4% growth; 26 are expanding rapidly above 6%, while 22 contracted in 2023.</p>
+    <div class="panel" id="bucketChart"></div>
+  </div>
+</section>
+
+<section id="wealth-growth">
+  <div class="wrap">
+    <div class="section-head"><h2>Wealth vs. growth</h2></div>
+    <p class="section-note">GDP per capita (log scale) against growth rate, for the 40 largest economies — bubble size scales with total GDP. Wealthier economies cluster near slower, steadier growth; the fastest movers tend to be lower-income.</p>
+    <div class="panel">
+      <div class="chart-shell" id="scatterShell">
+        <svg id="scatterChart" viewBox="0 0 960 420" preserveAspectRatio="none" role="img" aria-label="GDP per capita versus growth rate for the 40 largest economies"></svg>
+        <div class="scatter-tooltip" id="scatterTooltip"></div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background:var(--teal)"></span> Growing</div>
+        <div class="legend-item"><span class="swatch" style="background:var(--neg)"></span> Contracting</div>
+        <div class="legend-item" style="color:var(--faint)">Bubble size ∝ total GDP</div>
+      </div>
+      <div class="callouts">
+        <div class="callout"><b>Highest income —</b> Luxembourg leads at $128,936 per capita; Burundi sits lowest at $193, a 668× gap.</div>
+        <div class="callout"><b>Concentration —</b> the ten largest economies hold 66.7% of world GDP between them.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="fine-print">Built from the <a href="https://github.com/Priyanshi0029/global-gdp-dashboard" target="_blank" rel="noopener">global-gdp-dashboard</a> dataset (World Bank &amp; UN) · Python, Pandas, HTML &amp; SVG</div>
+  </div>
+</footer>
+
+<script>
+const DATA = {"num_countries": 181, "total_gdp_usd": 104573094257811.0, "total_population": 7888800818, "avg_growth": 3.28, "median_growth": 2.94, "countries_negative_growth": 22, "countries_growth_over_5": 47, "max_growth": {"Country": "Macao", "growth": 75.06}, "min_growth": {"Country": "Sudan", "growth": -20.11}, "max_gdp_percapita": {"Country": "Luxembourg", "gdp_per_capita": 128936.0}, "min_gdp_percapita": {"Country": "Burundi", "gdp_per_capita": 193.0}, "top15_gdp": [{"Country": "United States", "gdp": 27720700000000.0, "share": 26.11, "growth": 2.89, "gdp_per_capita": 80706.0}, {"Country": "China", "gdp": 17794800000000.0, "share": 16.76, "growth": 5.25, "gdp_per_capita": 12509.0}, {"Country": "Germany", "gdp": 4525700000000.0, "share": 4.26, "growth": -0.27, "gdp_per_capita": 53528.0}, {"Country": "Japan", "gdp": 4204490000000.0, "share": 3.96, "growth": 1.68, "gdp_per_capita": 33806.0}, {"Country": "India", "gdp": 3567550000000.0, "share": 3.36, "growth": 8.15, "gdp_per_capita": 2481.0}, {"Country": "United Kingdom", "gdp": 3380850000000.0, "share": 3.18, "growth": 0.34, "gdp_per_capita": 49224.0}, {"Country": "France", "gdp": 3051830000000.0, "share": 2.87, "growth": 0.94, "gdp_per_capita": 45934.0}, {"Country": "Italy", "gdp": 2300940000000.0, "share": 2.17, "growth": 0.7, "gdp_per_capita": 38672.0}, {"Country": "Brazil", "gdp": 2173670000000.0, "share": 2.05, "growth": 2.91, "gdp_per_capita": 10295.0}, {"Country": "Canada", "gdp": 2142470000000.0, "share": 2.02, "growth": 1.25, "gdp_per_capita": 54517.0}, {"Country": "Russia", "gdp": 2021420000000.0, "share": 1.9, "growth": 3.6, "gdp_per_capita": 13899.0}, {"Country": "Mexico", "gdp": 1789110000000.0, "share": 1.69, "growth": 3.2, "gdp_per_capita": 13790.0}, {"Country": "Australia", "gdp": 1728060000000.0, "share": 1.63, "growth": 3.44, "gdp_per_capita": 65330.0}, {"Country": "South Korea", "gdp": 1712790000000.0, "share": 1.61, "growth": 1.36, "gdp_per_capita": 33098.0}, {"Country": "Spain", "gdp": 1620090000000.0, "share": 1.53, "growth": 2.68, "gdp_per_capita": 33814.0}], "top10_growth": [{"Country": "Macao", "growth": 75.06, "gdp": 45803067940.0}, {"Country": "Guyana", "growth": 33.8, "gdp": 17159509565.0}, {"Country": "Libya", "growth": 10.16, "gdp": 45096462972.0}, {"Country": "Samoa", "growth": 8.58, "gdp": 938189444.0}, {"Country": "DR Congo", "growth": 8.56, "gdp": 66383287003.0}, {"Country": "Armenia", "growth": 8.3, "gdp": 24085749592.0}, {"Country": "Tajikistan", "growth": 8.3, "gdp": 12060602009.0}, {"Country": "Rwanda", "growth": 8.24, "gdp": 14097768472.0}, {"Country": "India", "growth": 8.15, "gdp": 3567550000000.0}, {"Country": "Georgia", "growth": 7.83, "gdp": 30777833585.0}], "bottom10_growth": [{"Country": "Sudan", "growth": -20.11, "gdp": 109266000000.0}, {"Country": "Timor-Leste", "growth": -18.12, "gdp": 2079916900.0}, {"Country": "Ireland", "growth": -5.53, "gdp": 551395000000.0}, {"Country": "State of Palestine", "growth": -5.41, "gdp": 17420800000.0}, {"Country": "Equatorial Guinea", "growth": -5.09, "gdp": 12337550584.0}, {"Country": "Marshall Islands", "growth": -3.93, "gdp": 259300000.0}, {"Country": "Kuwait", "growth": -3.64, "gdp": 163705000000.0}, {"Country": "Estonia", "growth": -3.02, "gdp": 41291245222.0}, {"Country": "Iraq", "growth": -2.94, "gdp": 250843000000.0}, {"Country": "Sri Lanka", "growth": -2.3, "gdp": 84356863744.0}], "top10_percapita": [{"Country": "Luxembourg", "gdp_per_capita": 128936.0, "gdp": 85755006124.0}, {"Country": "Ireland", "gdp_per_capita": 106106.0, "gdp": 551395000000.0}, {"Country": "Switzerland", "gdp_per_capita": 99761.0, "gdp": 884940000000.0}, {"Country": "Norway", "gdp_per_capita": 87932.0, "gdp": 485311000000.0}, {"Country": "Singapore", "gdp_per_capita": 86616.0, "gdp": 501428000000.0}, {"Country": "Iceland", "gdp_per_capita": 80827.0, "gdp": 31325116556.0}, {"Country": "United States", "gdp_per_capita": 80706.0, "gdp": 27720700000000.0}, {"Country": "Qatar", "gdp_per_capita": 71500.0, "gdp": 213003000000.0}, {"Country": "Denmark", "gdp_per_capita": 68440.0, "gdp": 407092000000.0}, {"Country": "Australia", "gdp_per_capita": 65330.0, "gdp": 1728060000000.0}], "top5_share_of_world": 54.45, "top10_share_of_world": 66.74, "growth_buckets": [{"name": "Contracting (<0%)", "count": 22}, {"name": "Slow (0-2%)", "count": 40}, {"name": "Moderate (2-4%)", "count": 57}, {"name": "Strong (4-6%)", "count": 36}, {"name": "Rapid (>6%)", "count": 26}], "scatter": [{"Country": "United States", "gdp": 27720700000000.0, "gdp_per_capita": 80706.0, "growth": 2.89}, {"Country": "China", "gdp": 17794800000000.0, "gdp_per_capita": 12509.0, "growth": 5.25}, {"Country": "Germany", "gdp": 4525700000000.0, "gdp_per_capita": 53528.0, "growth": -0.27}, {"Country": "Japan", "gdp": 4204490000000.0, "gdp_per_capita": 33806.0, "growth": 1.68}, {"Country": "India", "gdp": 3567550000000.0, "gdp_per_capita": 2481.0, "growth": 8.15}, {"Country": "United Kingdom", "gdp": 3380850000000.0, "gdp_per_capita": 49224.0, "growth": 0.34}, {"Country": "France", "gdp": 3051830000000.0, "gdp_per_capita": 45934.0, "growth": 0.94}, {"Country": "Italy", "gdp": 2300940000000.0, "gdp_per_capita": 38672.0, "growth": 0.7}, {"Country": "Brazil", "gdp": 2173670000000.0, "gdp_per_capita": 10295.0, "growth": 2.91}, {"Country": "Canada", "gdp": 2142470000000.0, "gdp_per_capita": 54517.0, "growth": 1.25}, {"Country": "Russia", "gdp": 2021420000000.0, "gdp_per_capita": 13899.0, "growth": 3.6}, {"Country": "Mexico", "gdp": 1789110000000.0, "gdp_per_capita": 13790.0, "growth": 3.2}, {"Country": "Australia", "gdp": 1728060000000.0, "gdp_per_capita": 65330.0, "growth": 3.44}, {"Country": "South Korea", "gdp": 1712790000000.0, "gdp_per_capita": 33098.0, "growth": 1.36}, {"Country": "Spain", "gdp": 1620090000000.0, "gdp_per_capita": 33814.0, "growth": 2.68}, {"Country": "Indonesia", "gdp": 1371170000000.0, "gdp_per_capita": 4876.0, "growth": 5.05}, {"Country": "Netherlands", "gdp": 1154360000000.0, "gdp_per_capita": 63803.0, "growth": 0.07}, {"Country": "Turkey", "gdp": 1118250000000.0, "gdp_per_capita": 12814.0, "growth": 5.11}, {"Country": "Saudi Arabia", "gdp": 1067580000000.0, "gdp_per_capita": 32094.0, "growth": -0.76}, {"Country": "Switzerland", "gdp": 884940000000.0, "gdp_per_capita": 99761.0, "growth": 0.72}, {"Country": "Poland", "gdp": 809201000000.0, "gdp_per_capita": 20876.0, "growth": 0.14}, {"Country": "Argentina", "gdp": 646075000000.0, "gdp_per_capita": 14187.0, "growth": -1.61}, {"Country": "Belgium", "gdp": 644783000000.0, "gdp_per_capita": 55049.0, "growth": 1.25}, {"Country": "Sweden", "gdp": 584960000000.0, "gdp_per_capita": 55439.0, "growth": -0.31}, {"Country": "Ireland", "gdp": 551395000000.0, "gdp_per_capita": 106106.0, "growth": -5.53}, {"Country": "Thailand", "gdp": 514969000000.0, "gdp_per_capita": 7182.0, "growth": 1.89}, {"Country": "United Arab Emirates", "gdp": 514130000000.0, "gdp_per_capita": 48311.0, "growth": 3.62}, {"Country": "Israel", "gdp": 513611000000.0, "gdp_per_capita": 55488.0, "growth": 2.42}, {"Country": "Austria", "gdp": 511685000000.0, "gdp_per_capita": 56042.0, "growth": -0.95}, {"Country": "Singapore", "gdp": 501428000000.0, "gdp_per_capita": 86616.0, "growth": 1.07}, {"Country": "Norway", "gdp": 485311000000.0, "gdp_per_capita": 87932.0, "growth": 0.48}, {"Country": "Bangladesh", "gdp": 437415000000.0, "gdp_per_capita": 2551.0, "growth": 5.78}, {"Country": "Philippines", "gdp": 437146000000.0, "gdp_per_capita": 3805.0, "growth": 5.55}, {"Country": "Vietnam", "gdp": 429717000000.0, "gdp_per_capita": 4282.0, "growth": 5.05}, {"Country": "Denmark", "gdp": 407092000000.0, "gdp_per_capita": 68440.0, "growth": 2.5}, {"Country": "Iran", "gdp": 404626000000.0, "gdp_per_capita": 4466.0, "growth": 5.04}, {"Country": "Malaysia", "gdp": 399705000000.0, "gdp_per_capita": 11379.0, "growth": 3.56}, {"Country": "Egypt", "gdp": 396002000000.0, "gdp_per_capita": 3457.0, "growth": 3.76}, {"Country": "Hong Kong", "gdp": 380812000000.0, "gdp_per_capita": 51166.0, "growth": 3.28}, {"Country": "South Africa", "gdp": 380699000000.0, "gdp_per_capita": 6023.0, "growth": 0.7}]};
+
+(function(){
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  try { var saved = localStorage.getItem('gdp-theme'); if(saved) root.setAttribute('data-theme', saved); } catch(e){}
+  function current(){
+    var attr = root.getAttribute('data-theme');
+    if(attr) return attr;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  btn.addEventListener('click', function(){
+    var next = current() === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('gdp-theme', next); } catch(e){}
+  });
+})();
+
+function fmtTrillion(v){ return '$' + (v/1e12).toFixed(2) + 'T'; }
+function fmtPerCapita(v){ return '$' + Math.round(v).toLocaleString('en-US'); }
+
+/* ================= TOP 15 ECONOMIES ================= */
+(function(){
+  const wrap = document.getElementById('topEconomies');
+  const maxGdp = Math.max(...DATA.top15_gdp.map(d=>d.gdp));
+  const tooltip = document.createElement('div');
+  tooltip.className = 'rank-tooltip';
+  document.body.appendChild(tooltip);
+
+  DATA.top15_gdp.forEach(function(d, i){
+    const row = document.createElement('div');
+    row.className = 'rank-row';
+    const pct = (d.gdp/maxGdp*100).toFixed(1);
+    row.innerHTML =
+      '<div class="rank-num">' + (i+1) + '</div>' +
+      '<div class="rank-name">' + d.Country + '</div>' +
+      '<div class="rank-track"><div class="rank-fill" style="width:' + pct + '%"></div></div>' +
+      '<div class="rank-val tabular">' + fmtTrillion(d.gdp) + '</div>';
+    const track = row.querySelector('.rank-track');
+    track.addEventListener('mousemove', function(evt){
+      tooltip.style.left = evt.clientX + 'px';
+      tooltip.style.top = evt.clientY + 'px';
+      tooltip.innerHTML = '<b>' + d.Country + '</b> &nbsp;' + d.share.toFixed(2) + '% of world GDP<br>Growth ' + (d.growth>=0?'+':'') + d.growth.toFixed(2) + '% &middot; ' + fmtPerCapita(d.gdp_per_capita) + ' per capita';
+      tooltip.style.opacity = '1';
+    });
+    track.addEventListener('mouseleave', function(){ tooltip.style.opacity = '0'; });
+    wrap.appendChild(row);
+  });
+})();
+
+/* ================= GROWTH EXTREMES ================= */
+(function(){
+  function render(target, list, positive){
+    const wrap = document.getElementById(target);
+    const maxAbs = Math.max(...list.map(d=>Math.abs(d.growth)));
+    list.forEach(function(d){
+      const row = document.createElement('div');
+      row.className = 'gr-row';
+      const widthPct = (Math.abs(d.growth)/maxAbs*100).toFixed(1);
+      const color = positive ? 'var(--teal)' : 'var(--neg)';
+      row.innerHTML =
+        '<div class="gr-name">' + d.Country + '</div>' +
+        '<div class="gr-track"><div class="gr-fill" style="width:' + widthPct + '%; background:' + color + ';"></div></div>' +
+        '<div class="gr-val tabular">' + (d.growth>=0?'+':'') + d.growth.toFixed(1) + '%</div>';
+      wrap.appendChild(row);
+    });
+  }
+  render('growthTop', DATA.top10_growth, true);
+  render('growthBottom', DATA.bottom10_growth, false);
+})();
+
+/* ================= GROWTH BUCKETS ================= */
+(function(){
+  const wrap = document.getElementById('bucketChart');
+  const maxCount = Math.max(...DATA.growth_buckets.map(d=>d.count));
+  DATA.growth_buckets.forEach(function(b){
+    const row = document.createElement('div');
+    row.className = 'bucket-row';
+    const pct = (b.count/maxCount*100).toFixed(1);
+    row.innerHTML =
+      '<div class="bucket-label">' + b.name + '</div>' +
+      '<div class="bucket-track"><div class="bucket-fill" style="width:' + pct + '%"></div></div>' +
+      '<div class="bucket-val tabular">' + b.count + '</div>';
+    wrap.appendChild(row);
+  });
+})();
+
+/* ================= SCATTER: WEALTH VS GROWTH ================= */
+(function(){
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('scatterChart');
+  const W = 960, H = 420;
+  const padL = 60, padR = 20, padT = 20, padB = 44;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+
+  const data = DATA.scatter;
+  const xMin = Math.log10(150), xMax = Math.log10(150000);
+  const yVals = data.map(d=>d.growth);
+  const yMin = Math.floor(Math.min(...yVals, -6)/2)*2 - 2;
+  const yMax = Math.ceil(Math.max(...yVals, 10)/2)*2 + 2;
+  const gdpMax = Math.max(...data.map(d=>d.gdp));
+
+  const x = v => padL + (Math.log10(v)-xMin)/(xMax-xMin)*plotW;
+  const y = v => padT + plotH - (v-yMin)/(yMax-yMin)*plotH;
+  const r = v => 4 + Math.sqrt(v/gdpMax)*22;
+
+  // gridlines: x (log ticks)
+  [200,1000,5000,20000,100000].forEach(function(v){
+    const lx = x(v);
+    const line = document.createElementNS(svgNS,'line');
+    line.setAttribute('x1', lx); line.setAttribute('x2', lx);
+    line.setAttribute('y1', padT); line.setAttribute('y2', padT+plotH);
+    line.setAttribute('class','gridline');
+    svg.appendChild(line);
+    const t = document.createElementNS(svgNS,'text');
+    t.setAttribute('x', lx); t.setAttribute('y', H-padB+18);
+    t.setAttribute('text-anchor','middle'); t.setAttribute('class','axislabel');
+    t.textContent = '$' + (v>=1000? (v/1000)+'k' : v);
+    svg.appendChild(t);
+  });
+  const xt = document.createElementNS(svgNS,'text');
+  xt.setAttribute('x', padL+plotW/2); xt.setAttribute('y', H-6);
+  xt.setAttribute('text-anchor','middle'); xt.setAttribute('class','axistitle');
+  xt.textContent = 'GDP PER CAPITA (LOG SCALE)';
+  svg.appendChild(xt);
+
+  // y gridlines
+  for(let v=yMin; v<=yMax; v+=Math.ceil((yMax-yMin)/6)){
+    const ly = y(v);
+    const line = document.createElementNS(svgNS,'line');
+    line.setAttribute('x1', padL); line.setAttribute('x2', W-padR);
+    line.setAttribute('y1', ly); line.setAttribute('y2', ly);
+    line.setAttribute('class','gridline');
+    svg.appendChild(line);
+    const t = document.createElementNS(svgNS,'text');
+    t.setAttribute('x', padL-8); t.setAttribute('y', ly+3);
+    t.setAttribute('text-anchor','end'); t.setAttribute('class','axislabel');
+    t.textContent = v + '%';
+    svg.appendChild(t);
+  }
+  const yt = document.createElementNS(svgNS,'text');
+  yt.setAttribute('x', 14); yt.setAttribute('y', padT+plotH/2);
+  yt.setAttribute('text-anchor','middle'); yt.setAttribute('class','axistitle');
+  yt.setAttribute('transform', 'rotate(-90 14 ' + (padT+plotH/2) + ')');
+  yt.textContent = 'GDP GROWTH';
+  svg.appendChild(yt);
+
+  // zero line
+  const zeroY = y(0);
+  const zline = document.createElementNS(svgNS,'line');
+  zline.setAttribute('x1', padL); zline.setAttribute('x2', W-padR);
+  zline.setAttribute('y1', zeroY); zline.setAttribute('y2', zeroY);
+  zline.setAttribute('stroke', 'var(--faint)'); zline.setAttribute('stroke-width','1');
+  svg.appendChild(zline);
+
+  const tooltip = document.getElementById('scatterTooltip');
+  const shell = document.getElementById('scatterShell');
+
+  data.forEach(function(d){
+    const c = document.createElementNS(svgNS,'circle');
+    c.setAttribute('cx', x(d.gdp_per_capita));
+    c.setAttribute('cy', y(d.growth));
+    c.setAttribute('r', r(d.gdp));
+    c.setAttribute('class', d.growth >= 0 ? 'dot-pos' : 'dot-neg');
+    c.style.cursor = 'pointer';
+    c.addEventListener('mouseenter', function(){
+      c.classList.add('dot-hi');
+      const shellRect = shell.getBoundingClientRect();
+      const px = (x(d.gdp_per_capita)/W) * shellRect.width;
+      const py = (y(d.growth)/H) * shellRect.height;
+      tooltip.style.left = px + 'px';
+      tooltip.style.top = py + 'px';
+      tooltip.innerHTML = '<b>' + d.Country + '</b><br>' + fmtTrillion(d.gdp) + ' GDP &middot; ' + fmtPerCapita(d.gdp_per_capita) + '/capita<br>Growth ' + (d.growth>=0?'+':'') + d.growth.toFixed(2) + '%';
+      tooltip.style.opacity = '1';
+    });
+    c.addEventListener('mouseleave', function(){
+      c.classList.remove('dot-hi');
+      tooltip.style.opacity = '0';
+    });
+    svg.appendChild(c);
+  });
+})();
+</script>
